@@ -1,5 +1,7 @@
 package com.tickets.ing_yrj.tickets.Activity;
 
+import android.os.Parcelable;
+import android.provider.SyncStateContract;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -16,9 +18,20 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import android.widget.ListView;
 import android.widget.TextView;
 
+import com.tickets.ing_yrj.tickets.Adapter.TicketAdapter;
+import com.tickets.ing_yrj.tickets.Model.Ticket;
+import com.tickets.ing_yrj.tickets.Model.itemTicket;
 import com.tickets.ing_yrj.tickets.R;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TicketsActivity extends AppCompatActivity {
 
@@ -36,73 +49,36 @@ public class TicketsActivity extends AppCompatActivity {
      * The {@link ViewPager} that will host the section contents.
      */
     private ViewPager mViewPager;
+    private Toolbar toolbar_ticket;
+    private static TicketAdapter ticketAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tickets);
-
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        // Create the adapter that will return a fragment for each of the three
-        // primary sections of the activity.
-        mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
-
-        // Set up the ViewPager with the sections adapter.
-        mViewPager = (ViewPager) findViewById(R.id.container);
-        mViewPager.setAdapter(mSectionsPagerAdapter);
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
+        inicialiceComponen();
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_tickets, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
-
-    /**
-     * A placeholder fragment containing a simple view.
-     */
     public static class PlaceholderFragment extends Fragment {
-        /**
-         * The fragment argument representing the section number for this
-         * fragment.
-         */
         private static final String ARG_SECTION_NUMBER = "section_number";
-
-        public PlaceholderFragment() {
-        }
-
-        /**
-         * Returns a new instance of this fragment for the given section
-         * number.
-         */
+        private ListView list_ticket;
+        public  ArrayList<itemTicket> item;
+        public PlaceholderFragment() { }
+        public boolean ban=true;
         public static PlaceholderFragment newInstance(int sectionNumber) {
             PlaceholderFragment fragment = new PlaceholderFragment();
             Bundle args = new Bundle();
@@ -115,9 +91,48 @@ public class TicketsActivity extends AppCompatActivity {
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_tickets, container, false);
-            TextView textView = (TextView) rootView.findViewById(R.id.section_label);
-            textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
+            list_ticket=(ListView) rootView.findViewById(R.id.list_ticket);
+
+            if(ban){
+                Bundle information = this.getActivity().getIntent().getExtras();
+                getArrayItemTicket(information.getString("response"));
+                ban=false;
+            }
+            ticketAdapter = new TicketAdapter(rootView.getContext(), item.get(getArguments().getInt(ARG_SECTION_NUMBER)-1).getTicket());
+            list_ticket.setAdapter(ticketAdapter);
+            ticketAdapter.notifyDataSetChanged();
             return rootView;
+        }
+        private  void getArrayItemTicket(String value){
+            try {
+                if (!value.equals("")){
+                    JSONObject Obj = new JSONObject(value);
+                    JSONArray jArrayItem = Obj.getJSONArray("items");
+                    item = new ArrayList<itemTicket>();
+                    for (int i=0; i<jArrayItem.length(); i++){
+                        JSONObject json_data_item = jArrayItem.getJSONObject(i);
+                        itemTicket resultRaw_item = new itemTicket();
+                        resultRaw_item.setNumber(json_data_item.getString("number"));
+                        JSONArray jArrayTicket= new JSONArray(json_data_item.getString("ticket"));
+                        ArrayList<Ticket> ticket = new ArrayList<Ticket>();
+                        for (int j=0; j<jArrayTicket.length();j++ ){
+                            JSONObject json_data_ticket=jArrayTicket.getJSONObject(j);
+                            Ticket resultRaw_ticket=new Ticket();
+                            resultRaw_ticket.setText_1(json_data_ticket.getString("text_1"));
+                            resultRaw_ticket.setText_2(json_data_ticket.getString("text_2"));
+                            resultRaw_ticket.setDate_1(json_data_ticket.getString("date_1"));
+                            resultRaw_ticket.setDate_2(json_data_ticket.getString("date_2"));
+                            resultRaw_ticket.setUrlImg( json_data_ticket.getString("urlImg"));
+                            resultRaw_ticket.setPoint(json_data_ticket.getInt("point") );
+                            ticket.add(resultRaw_ticket);
+                        }
+                        resultRaw_item.setTicket(ticket);
+                        item.add(resultRaw_item);
+                    }
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -133,15 +148,19 @@ public class TicketsActivity extends AppCompatActivity {
 
         @Override
         public Fragment getItem(int position) {
-            // getItem is called to instantiate the fragment for the given page.
-            // Return a PlaceholderFragment (defined as a static inner class below).
             return PlaceholderFragment.newInstance(position + 1);
         }
 
         @Override
         public int getCount() {
-            // Show 3 total pages.
-            return 3;
+            return 7;
         }
+    }
+    private  void inicialiceComponen(){
+        toolbar_ticket= (Toolbar) findViewById(R.id.toolbar_ticket);
+        setSupportActionBar(toolbar_ticket);
+        mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
+        mViewPager = (ViewPager) findViewById(R.id.container);
+        mViewPager.setAdapter(mSectionsPagerAdapter);
     }
 }

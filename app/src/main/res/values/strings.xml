@@ -1,6 +1,10 @@
 <resources>
     <!--Main Activity-->
     <string name="st_btn_main_list_ticket">Tickets</string>
+    <!--itemTicket Item -->
+    <string name="st_text_item_ticket">Text</string>
+    <string name="st_date_item_ticket_1">Date 1</string>
+    <string name="st_date_item_ticket_2">Date 2</string>
 
     <string name="app_name">Tickets</string>
     <string name="action_settings">Settings</string>
